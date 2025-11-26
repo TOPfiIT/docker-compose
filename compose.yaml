@@ -10,6 +10,7 @@ services:
     depends_on:
       - interview-service
       - auth-service
+      - vacancy-service
     networks:
       - app-network
 
@@ -19,6 +20,9 @@ services:
       - "8000:8000"
     env_file:
       - interview.env
+    depends_on:
+      - auth-service
+      - vacancy-service
     networks:
       - app-network
 
@@ -29,8 +33,6 @@ services:
       POSTGRES_DB: auth_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -41,8 +43,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: auth_redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -52,9 +52,6 @@ services:
     image: acyushka/vcj-auth-service:latest
     ports:
       - "8087:8087"
-    depends_on:
-      - postgres
-      - redis
     volumes:
       - ./auth.yaml:/app/config/local.yaml
     environment:
@@ -62,11 +59,42 @@ services:
       - CONFIG_PATH=/app/config/local.yaml
       - JWT_PRIVATE_KEY=-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIO25XcFzX8NGODMYkTTLY6vgPV0A37HWW6gukxJoVaJfoAoGCCqGSM49\nAwEHoUQDQgAEQy0TSI95s6hkPCFyicGS8oVoAzB7yiQhjrsy9KV4QivobyYsb89Y\nxM7BJ+HHGhL83+DcKwRViLm3SlMV6NP/IQ==\n-----END EC PRIVATE KEY-----
       - JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQy0TSI95s6hkPCFyicGS8oVoAzB7\nyiQhjrsy9KV4QivobyYsb89YxM7BJ+HHGhL83+DcKwRViLm3SlMV6NP/IQ==\n-----END PUBLIC KEY-----
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+
+  postgres-vacancy:
+    image: postgres:15-alpine
+    container_name: vacancy_postgres
+    environment:
+      POSTGRES_DB: vacancy_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - vacancy_postgres_data:/var/lib/postgresql/data
+      - ./migrations/init-vacancy.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  vacancy-service:
+    image: acyushka/vcj-vacancy-service:latest
+    ports:
+      - "8086:8086"
+    depends_on:
+      - postgres-vacancy
+    volumes:
+      - ./vacancy.yaml:/app/config/local.yaml
+    environment:
+      - GIN_MODE=debug
+      - CONFIG_PATH=/app/config/local.yaml
     networks:
       - app-network
 
 volumes:
   postgres_data:
+  vacancy_postgres_data:
   redis_data:
 
 networks:
