@@ -51,7 +51,7 @@ services:
   auth-service:
     image: acyushka/vcj-auth-service:latest
     ports:
-      - "8087:8087"
+      - "8087:8080"
     volumes:
       - ./auth.yaml:/app/config/local.yaml
     environment:
